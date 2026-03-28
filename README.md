@@ -39,8 +39,8 @@ SysGuard/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/SysGuard.git
-cd SysGuard
+git clone https://github.com/YOUR_USERNAME/Guardian.git
+cd Guardian
 ```
 
 ### 2. Create and activate virtual environment
