@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SysGuard - System Health Monitor</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f1117;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px 0 30px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      color: #00e5ff;
+      letter-spacing: 2px;
+    }
+
+    header p {
+      color: #888;
+      margin-top: 5px;
+    }
+
+    .cards {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 12px;
+      padding: 20px 30px;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .card h3 {
+      font-size: 0.85rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .card .value {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #00e5ff;
+    }
+
+    .card .sub {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .alert-box {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 12px;
+      padding: 15px 25px;
+      max-width: 900px;
+      margin: 0 auto 30px;
+      min-height: 50px;
+    }
+
+    .alert-box h3 {
+      font-size: 0.85rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .alert { color: #ff5252; font-size: 0.9rem; margin: 3px 0; }
+    .ok    { color: #69ff47; font-size: 0.9rem; }
+
+    .charts {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .chart-box {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 12px;
+      padding: 20px;
+      width: 420px;
+    }
+
+    .chart-box h3 {
+      font-size: 0.85rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    #timestamp {
+      text-align: center;
+      color: #444;
+      font-size: 0.8rem;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>⚡ Guardian</h1>
+    <p>Real-Time System Health Monitor</p>
+  </header>
+
+  <!-- Stat Cards -->
+  <div class="cards">
+    <div class="card">
+      <h3>CPU Usage</h3>
+      <div class="value" id="cpu-val">--%</div>
+      <div class="sub">Live</div>
+    </div>
+    <div class="card">
+      <h3>Memory Usage</h3>
+      <div class="value" id="mem-val">--%</div>
+      <div class="sub" id="mem-sub">-- GB / -- GB</div>
+    </div>
+    <div class="card">
+      <h3>Disk Usage</h3>
+      <div class="value" id="disk-val">--%</div>
+      <div class="sub" id="disk-sub">-- GB / -- GB</div>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="alert-box">
+    <h3>🚨 Alerts</h3>
+    <div id="alerts"><span class="ok">✅ All systems normal</span></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts">
+    <div class="chart-box">
+      <h3>CPU %</h3>
+      <canvas id="cpuChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Memory %</h3>
+      <canvas id="memChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Disk %</h3>
+      <canvas id="diskChart"></canvas>
+    </div>
+  </div>
+
+  <div id="timestamp">Last updated: --</div>
+
+  <script>
+    // ── Thresholds ──────────────────────────────────────────
+    const THRESHOLDS = { cpu: 75, memory: 80, disk: 85 };
+
+    // ── Chart setup ─────────────────────────────────────────
+    const MAX_POINTS = 20;
+
+    function makeChart(id, label, color) {
+      const ctx = document.getElementById(id).getContext('2d');
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: label,
+            data: [],
+            borderColor: color,
+            backgroundColor: color + '22',
+            borderWidth: 2,
+            pointRadius: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          animation: false,
+          scales: {
+            y: { min: 0, max: 100, ticks: { color: '#888' }, grid: { color: '#2a2d3e' } },
+            x: { ticks: { color: '#888', maxTicksLimit: 6 }, grid: { color: '#2a2d3e' } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    const cpuChart  = makeChart('cpuChart',  'CPU %',    '#00e5ff');
+    const memChart  = makeChart('memChart',  'Memory %', '#ff6d00');
+    const diskChart = makeChart('diskChart', 'Disk %',   '#69ff47');
+
+    // ── Push data to chart ──────────────────────────────────
+    function pushData(chart, label, value) {
+      chart.data.labels.push(label);
+      chart.data.datasets[0].data.push(value);
+      if (chart.data.labels.length > MAX_POINTS) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.update();
+    }
+
+    // ── Alerts ──────────────────────────────────────────────
+    function checkAlerts(cpu, mem, disk) {
+      const box = document.getElementById('alerts');
+      let msgs = [];
+      if (cpu  > THRESHOLDS.cpu)    msgs.push(`⚠️ CPU usage is high: ${cpu}%`);
+      if (mem  > THRESHOLDS.memory) msgs.push(`⚠️ Memory usage is high: ${mem}%`);
+      if (disk > THRESHOLDS.disk)   msgs.push(`⚠️ Disk usage is high: ${disk}%`);
+      box.innerHTML = msgs.length
+        ? msgs.map(m => `<div class="alert">${m}</div>`).join('')
+        : '<span class="ok">✅ All systems normal</span>';
+    }
+
+    // ── Fetch metrics every 3 seconds ───────────────────────
+    async function fetchMetrics() {
+      try {
+        const res  = await fetch('/api/metrics');
+        const data = await res.json();
+
+        const cpu  = data.cpu.percent;
+        const mem  = data.memory.percent;
+        const disk = data.disk.percent;
+        const ts   = data.timestamp;
+
+        // Update cards
+        document.getElementById('cpu-val').textContent  = cpu + '%';
+        document.getElementById('mem-val').textContent  = mem + '%';
+        document.getElementById('disk-val').textContent = disk + '%';
+        document.getElementById('mem-sub').textContent  =
+          `${data.memory.used_gb} GB / ${data.memory.total_gb} GB`;
+        document.getElementById('disk-sub').textContent =
+          `${data.disk.used_gb} GB / ${data.disk.total_gb} GB`;
+        document.getElementById('timestamp').textContent =
+          'Last updated: ' + ts;
+
+        // Update charts
+        pushData(cpuChart,  ts, cpu);
+        pushData(memChart,  ts, mem);
+        pushData(diskChart, ts, disk);
+
+        // Check alerts
+        checkAlerts(cpu, mem, disk);
+
+      } catch (err) {
+        console.error('Failed to fetch metrics:', err);
+      }
+    }
+
+    fetchMetrics();
+    setInterval(fetchMetrics, 3000);
+  </script>
+
+</body>
+</html>
