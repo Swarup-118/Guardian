@@ -89,5 +89,5 @@ http://127.0.0.1:5000
 
 ## 👨‍💻 Author
 
-**Swarup** — Computer Science Student  
-Built as a portfolio project targeting Software Developer / Application Engineer / SRE roles.
+**Swarup** — A Electronics & Computer Engg. Student
+Built as a portfolio project targeting Application Engineer / SRE roles.
